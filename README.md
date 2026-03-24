@@ -1,6 +1,7 @@
 # Code Update 部署工具
 
 一个轻量、安全的 Web 部署工具，通过浏览器上传文件，自动通过 SSH/SFTP 部署到远程服务器。
+![alt text](image.png)
 
 ## 特性
 
