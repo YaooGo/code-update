@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Update — 部署工具</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="logo-icon"><i data-lucide="zap"></i></span>
+      <span class="logo-text">Code Update</span>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-tab="home" id="nav-home">
+        <span class="nav-icon"><i data-lucide="layout-dashboard"></i></span>
+        <span>首页</span>
+      </button>
+      <button class="nav-item" data-tab="deploy" id="nav-deploy">
+        <span class="nav-icon"><i data-lucide="rocket"></i></span>
+        <span>发布部署</span>
+      </button>
+      <button class="nav-item" data-tab="deployments" id="nav-deployments">
+        <span class="nav-icon"><i data-lucide="package"></i></span>
+        <span>部署配置</span>
+      </button>
+      <button class="nav-item" data-tab="servers" id="nav-servers">
+        <span class="nav-icon"><i data-lucide="server"></i></span>
+        <span>服务器</span>
+      </button>
+      <button class="nav-item" data-tab="history" id="nav-history">
+        <span class="nav-icon"><i data-lucide="clock"></i></span>
+        <span>部署历史</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">v1.1.0</div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- === HOME TAB === -->
+    <section id="tab-home" class="tab-content active">
+      <div class="page-header">
+        <h1>控制台</h1>
+        <p class="subtitle">欢迎使用 Code Update 部署工具，查看系统概览与最近部署记录</p>
+      </div>
+
+      <!-- Stats Glass Hero -->
+      <div class="charts-hero stat-hero">
+        <div class="blob blob-1" style="width:200px;height:200px"></div>
+        <div class="blob blob-2" style="width:150px;height:150px"></div>
+        <div class="stats-glass-grid">
+          <div class="glass-card stat-glass-card">
+            <div class="stat-glass-icon stat-icon-blue"><i data-lucide="server"></i></div>
+            <div>
+              <div class="stat-glass-value" id="stat-servers">—</div>
+              <div class="stat-glass-label">服务器</div>
+            </div>
+          </div>
+          <div class="glass-card stat-glass-card">
+            <div class="stat-glass-icon stat-icon-purple"><i data-lucide="package"></i></div>
+            <div>
+              <div class="stat-glass-value" id="stat-configs">—</div>
+              <div class="stat-glass-label">部署配置</div>
+            </div>
+          </div>
+          <div class="glass-card stat-glass-card">
+            <div class="stat-glass-icon stat-icon-green"><i data-lucide="check-circle"></i></div>
+            <div>
+              <div class="stat-glass-value" id="stat-success">—</div>
+              <div class="stat-glass-label">成功部署</div>
+            </div>
+          </div>
+          <div class="glass-card stat-glass-card">
+            <div class="stat-glass-icon stat-icon-red"><i data-lucide="x-circle"></i></div>
+            <div>
+              <div class="stat-glass-value" id="stat-failed">—</div>
+              <div class="stat-glass-label">失败部署</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Glass Section -->
+      <div class="charts-hero">
+        <!-- Ambient blobs -->
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+
+        <div class="charts-glass-grid">
+          <!-- Trend -->
+          <div class="glass-card glass-card-wide">
+            <div class="glass-card-header">
+              <span class="glass-icon"><i data-lucide="trending-up"></i></span>
+              <div>
+                <div class="glass-title">最近 7 天部署趋势</div>
+                <div class="glass-sub">按日统计成功 / 失败次数</div>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-trend"></canvas>
+            </div>
+          </div>
+
+          <!-- Success Rate -->
+          <div class="glass-card glass-card-sm">
+            <div class="glass-card-header">
+              <span class="glass-icon"><i data-lucide="target"></i></span>
+              <div>
+                <div class="glass-title">部署成功率</div>
+                <div class="glass-sub">近 50 次部署统计</div>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap-donut">
+              <canvas id="chart-rate"></canvas>
+            </div>
+            <div id="chart-rate-legend" class="chart-legend"></div>
+          </div>
+        </div>
+
+        <!-- Config Usage — full width glass -->
+        <div class="glass-card" style="margin-top:1rem">
+          <div class="glass-card-header">
+            <span class="glass-icon"><i data-lucide="bar-chart-2"></i></span>
+            <div>
+              <div class="glass-title">配置使用频率</div>
+              <div class="glass-sub">近 50 次部署中各配置使用次数 Top 6</div>
+            </div>
+          </div>
+          <div class="chart-wrap chart-wrap-short">
+            <canvas id="chart-configs"></canvas>
+          </div>
+        </div>
+      </div>
+
+
+
+      <!-- Recent Deployments Glass Card -->
+      <div class="charts-hero" style="margin-top:1.25rem;padding:1.5rem">
+        <div class="blob blob-1" style="width:180px;height:180px;opacity:0.2"></div>
+        <div class="blob blob-2" style="width:140px;height:140px;opacity:0.18"></div>
+        <div class="glass-card" style="position:relative;z-index:1">
+          <div class="glass-card-header">
+            <span class="glass-icon"><i data-lucide="clock"></i></span>
+            <div style="flex:1">
+              <div class="glass-title">最近部署</div>
+              <div class="glass-sub">最近 10 次部署记录</div>
+            </div>
+            <button class="btn btn-sm btn-glass" id="home-deploy-btn">
+              <i data-lucide="rocket"></i> 立即部署
+            </button>
+          </div>
+          <div id="home-history-list" class="history-list">
+            <div class="empty-state">暂无部署记录</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- === DEPLOY TAB === -->
+    <section id="tab-deploy" class="tab-content">
+      <div class="page-header">
+        <h1>发布部署</h1>
+        <p class="subtitle">选择部署配置，上传文件，一键部署到服务器</p>
+      </div>
+
+      <div class="charts-hero deploy-hero">
+        <div class="blob blob-1" style="width:160px;height:160px;opacity:0.2"></div>
+        <div class="blob blob-2" style="width:120px;height:120px;opacity:0.18"></div>
+        <div class="deploy-glass-grid">
+          <div class="glass-card deploy-glass-card">
+            <div class="glass-card-header">
+              <span class="glass-icon"><i data-lucide="layers"></i></span>
+              <div class="glass-title">选择部署配置</div>
+            </div>
+            <div class="select-wrapper">
+              <select id="deploy-select" class="select select-glass">
+                <option value="">-- 请选择部署配置 --</option>
+              </select>
+            </div>
+            <div id="deploy-config-preview" class="config-preview hidden"></div>
+          </div>
+
+          <div class="glass-card deploy-glass-card">
+            <div class="glass-card-header">
+              <span class="glass-icon"><i data-lucide="upload-cloud"></i></span>
+              <div class="glass-title">上传文件</div>
+            </div>
+            <div id="drop-zone" class="drop-zone drop-zone-glass">
+              <div class="drop-icon"><i data-lucide="folder-open"></i></div>
+              <p class="drop-text">拖拽文件到此处，或点击选择</p>
+              <p class="drop-hint">支持 .zip、.tar.gz、.tgz 等压缩包，最大 500MB</p>
+              <input type="file" id="file-input" accept=".zip,.tar.gz,.tgz,.tar.bz2,.tar.xz,.tar" hidden />
+            </div>
+            <div id="file-selected" class="file-selected hidden">
+              <span class="file-icon"><i data-lucide="file"></i></span>
+              <span id="file-name" class="file-name"></span>
+              <span id="file-size" class="file-size"></span>
+              <button class="btn-icon" id="file-clear" title="取消">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="deploy-action">
+        <button id="deploy-btn" class="btn btn-primary btn-large" disabled>
+          <span class="btn-text">开始部署</span>
+        </button>
+      </div>
+
+      <!-- Log Panel -->
+      <div id="log-panel" class="card log-card hidden">
+        <div class="log-header">
+          <h2 class="card-title">部署日志</h2>
+          <div style="display:flex;gap:0.6rem;align-items:center;">
+            <div id="deploy-status-badge" class="status-badge status-running">运行中</div>
+            <button id="cancel-deploy-btn" class="btn btn-sm btn-danger-outline" style="display:none">✕ 取消部署</button>
+          </div>
+        </div>
+        <div id="log-output" class="log-output"></div>
+      </div>
+
+    </section>
+
+    <!-- === DEPLOYMENTS TAB === -->
+    <section id="tab-deployments" class="tab-content">
+      <div class="page-header">
+        <h1>部署配置</h1>
+        <p class="subtitle">管理部署模板，配置远程路径、备份策略和重启服务</p>
+        <button class="btn btn-primary" id="add-deployment-btn">＋ 新增配置</button>
+      </div>
+      <div id="deployments-list" class="card-list"></div>
+    </section>
+
+    <!-- === SERVERS TAB === -->
+    <section id="tab-servers" class="tab-content">
+      <div class="page-header">
+        <h1>服务器管理</h1>
+        <p class="subtitle">添加和管理 SSH 服务器，密码加密存储</p>
+        <button class="btn btn-primary" id="add-server-btn">＋ 新增服务器</button>
+      </div>
+      <div id="servers-list" class="card-list"></div>
+    </section>
+
+    <!-- === HISTORY TAB === -->
+    <section id="tab-history" class="tab-content">
+      <div class="page-header">
+        <h1>部署历史</h1>
+        <p class="subtitle">查看所有历史部署记录及日志，数据持久保存重启不丢失</p>
+        <button class="btn btn-danger-outline" id="clear-history-btn">删除历史</button>
+      </div>
+      <div class="charts-hero" style="margin-top:1rem;padding:1.25rem">
+        <div class="blob blob-1" style="width:160px;height:160px;opacity:0.18"></div>
+        <div class="glass-card" style="position:relative;z-index:1">
+          <div id="history-list" class="history-list">
+            <div class="empty-state">暂无部署记录</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== MODALS ===== -->
+
+  <!-- Server Modal -->
+  <div id="server-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="server-modal-title">新增服务器</h3>
+        <button class="modal-close" data-close="server-modal">✕</button>
+      </div>
+      <form id="server-form" class="modal-form">
+        <input type="hidden" id="server-id" />
+        <div class="form-group">
+          <label>显示名称 <span class="req">*</span></label>
+          <input type="text" id="server-name" placeholder="例：生产服 192.168.0.189" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>主机地址 <span class="req">*</span></label>
+            <input type="text" id="server-host" placeholder="192.168.0.189" required />
+          </div>
+          <div class="form-group form-group-sm">
+            <label>SSH 端口</label>
+            <input type="number" id="server-port" value="22" min="1" max="65535" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>用户名 <span class="req">*</span></label>
+          <input type="text" id="server-username" placeholder="root" required />
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="server-password" placeholder="留空则不更改（编辑时）" autocomplete="new-password" />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" data-close="server-modal">取消</button>
+          <button type="button" class="btn btn-secondary" id="test-conn-btn">🔌 测试连通性</button>
+          <span id="test-conn-result" style="font-size:0.82rem;margin-left:0.5rem"></span>
+          <button type="submit" class="btn btn-primary" id="server-submit">保存</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Deployment Modal -->
+  <div id="deployment-modal" class="modal-overlay hidden">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h3 id="deployment-modal-title">新增部署配置</h3>
+        <button class="modal-close" data-close="deployment-modal">✕</button>
+      </div>
+      <form id="deployment-form" class="modal-form">
+        <input type="hidden" id="dep-id" />
+
+        <!-- Deploy Type -->
+        <div class="form-group">
+          <label>部署类型 <span class="req">*</span></label>
+          <div class="type-toggle" id="dep-type-toggle">
+            <button type="button" class="type-btn active" data-type="frontend">
+              <span>🌐</span> 前端（zip 解压）
+            </button>
+            <button type="button" class="type-btn" data-type="binary">
+              <span>⚙️</span> 后端二进制
+            </button>
+          </div>
+          <input type="hidden" id="dep-deployType" value="frontend" />
+        </div>
+
+        <div class="form-group">
+          <label>配置名称 <span class="req">*</span></label>
+          <input type="text" id="dep-name" placeholder="例：前端 flowwebnew @ 生产服" required />
+        </div>
+        <div class="form-group">
+          <label>关联服务器 <span class="req">*</span></label>
+          <select id="dep-server" class="select" required>
+            <option value="">-- 选择服务器 --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>远程目录 <span class="req">*</span></label>
+          <input type="text" id="dep-remoteUploadDir" placeholder="/var/www/" required />
+          <small id="dep-remoteUploadDir-hint">压缩包上传到此目录，解压后移动到目标目录</small>
+        </div>
+
+        <!-- Binary-only fields -->
+        <div id="dep-fields-binary" class="form-section hidden">
+          <div class="form-section-title">二进制配置</div>
+          <div class="form-group">
+            <label>二进制文件名 <span class="req">*</span></label>
+            <input type="text" id="dep-binaryName" placeholder="flowaggregatecron" />
+            <small>上传后重命名为此名称，最终路径 = 远程目录 / 二进制文件名</small>
+          </div>
+        </div>
+
+        <!-- Frontend-only fields -->
+        <div id="dep-fields-frontend" class="form-section">
+          <div class="form-section-title">解压配置</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>包内文件夹名</label>
+              <input type="text" id="dep-innerFolder" placeholder="dist" />
+              <small>解压后内层目录名，留空则整体移动</small>
+            </div>
+            <div class="form-group">
+              <label>最终目录名 <span class="req">*</span></label>
+              <input type="text" id="dep-targetDir" placeholder="flowwebnew" />
+              <small>部署后的目标目录名称</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backup (shared, label differs) -->
+        <div class="form-section-title">备份配置</div>
+        <div class="form-row">
+          <div class="form-group form-group-check">
+            <label class="checkbox-label">
+              <input type="checkbox" id="dep-backupEnabled" checked />
+              <span id="dep-backup-label">部署前备份旧目录</span>
+            </label>
+          </div>
+          <div id="dep-backupDir-wrap" class="form-group">
+            <label>备份来源目录名</label>
+            <input type="text" id="dep-backupDir" placeholder="flowwebnew" />
+            <small>要备份的现有目录，自动加时间戳</small>
+          </div>
+        </div>
+
+        <!-- Hooks & restart (shared) -->
+        <div class="form-section-title">钩子 &amp; 服务重启</div>
+        <div class="form-group">
+          <label>前置命令（部署前执行）</label>
+          <textarea id="dep-preCommands" class="textarea" rows="3" placeholder="每行一条命令，例：&#10;cd /opt/apps &amp;&amp; git pull"></textarea>
+        </div>
+        <div class="form-group">
+          <label>重启服务命令（可选）</label>
+          <input type="text" id="dep-serviceRestart" placeholder="例：supervisorctl restart myapp  /  systemctl restart nginx  /  pm2 restart app" />
+          <small>部署完成后执行，支持任意 shell 命令</small>
+        </div>
+        <div class="form-group">
+          <label>后置命令（重启后执行）</label>
+          <textarea id="dep-postCommands" class="textarea" rows="3" placeholder="每行一条命令"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" data-close="deployment-modal">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div id="confirm-modal" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>确认删除</h3>
+        <button class="modal-close" data-close="confirm-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-message">确定要删除吗？此操作不可撤销。</p>
+      </div>
+      <div class="form-actions" style="padding: 0 1.5rem 1.5rem">
+        <button class="btn btn-secondary" data-close="confirm-modal">取消</button>
+        <button class="btn btn-danger" id="confirm-ok">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Log Modal -->
+  <div id="log-modal" class="modal-overlay hidden">
+    <div class="modal modal-wide modal-tall">
+      <div class="modal-header">
+        <div>
+          <h3 id="log-modal-title">部署日志</h3>
+          <div id="log-modal-meta" class="log-modal-meta"></div>
+        </div>
+        <button class="modal-close" data-close="log-modal">✕</button>
+      </div>
+      <div id="log-modal-output" class="log-output log-output-modal"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

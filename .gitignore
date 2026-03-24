@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# ⚠️  Sensitive — never commit these
+# AES-256 decryption key for server passwords
+.secret_key
+# servers.json (encrypted passwords), deployments.json, history
+data/
+
+# Runtime / uploads
+uploads/
+*.log
+
+# Environment files (if added later)
+.env
+.env.*
+!.env.example
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
