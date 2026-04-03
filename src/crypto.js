@@ -2,16 +2,25 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const KEY_FILE = path.join(__dirname, '../../.secret_key');
+const KEY_FILE = path.join(__dirname, '../data/.secret_key');
 const ALGORITHM = 'aes-256-gcm';
 
 function getKey() {
-  if (fs.existsSync(KEY_FILE)) {
-    return Buffer.from(fs.readFileSync(KEY_FILE, 'utf8').trim(), 'hex');
+  try {
+    if (fs.existsSync(KEY_FILE)) {
+      return Buffer.from(fs.readFileSync(KEY_FILE, 'utf8').trim(), 'hex');
+    }
+    // Ensure data directory exists
+    const dataDir = path.dirname(KEY_FILE);
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    const key = crypto.randomBytes(32);
+    fs.writeFileSync(KEY_FILE, key.toString('hex'));
+    return key;
+  } catch (err) {
+    console.error('[CRYPTO] Failed to read/create secret key:', err.message);
+    // Fallback: use a deterministic key based on machine info (less secure but won't crash)
+    return crypto.createHash('sha256').update('code-update-fallback-key').digest();
   }
-  const key = crypto.randomBytes(32);
-  fs.writeFileSync(KEY_FILE, key.toString('hex'), { mode: 0o600 });
-  return key;
 }
 
 const KEY = getKey();

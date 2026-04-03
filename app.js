@@ -33,6 +33,25 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Global JSON error handler — catches multer errors, route errors, etc.
+// On Windows, without this middleware, errors return HTML which the frontend can't parse.
+app.use((err, req, res, next) => {
+  console.error('[SERVER ERROR]', err.stack || err.message);
+  const status = err.status || 500;
+  const message = err.code === 'LIMIT_FILE_SIZE'
+    ? 'File too large (max 500MB)'
+    : err.message || 'Internal server error';
+  res.status(status).json({ error: message });
+});
+
+// Process-level error handlers for diagnostics
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err.stack || err.message);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('[FATAL] Unhandled rejection:', err.stack || err.message);
+});
+
 app.listen(PORT, () => {
   console.log(`\n🚀 Code Update Tool running at http://localhost:${PORT}\n`);
 });

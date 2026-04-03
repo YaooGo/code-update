@@ -81,59 +81,64 @@ router.delete('/:id', (req, res) => {
 
 // POST /api/servers/test — test SSH connection
 router.post('/test', (req, res) => {
-  const { host, port, username, password, serverId } = req.body;
-  const { Client } = require('ssh2');
+  try {
+    const { host, port, username, password, serverId } = req.body;
+    const { Client } = require('ssh2');
 
-  let connectOpts;
-  if (serverId) {
-    // Use existing server credentials
-    const servers = readServers();
-    const s = servers.find(x => x.id === serverId);
-    if (!s) return res.status(404).json({ error: 'Server not found' });
-    connectOpts = {
-      host: s.host,
-      port: s.port || 22,
-      username: s.username,
-      readyTimeout: 10000,
-    };
-    if (s.privateKey) {
-      connectOpts.privateKey = decrypt(s.privateKey);
-    } else if (s.password) {
-      connectOpts.password = decrypt(s.password);
+    let connectOpts;
+    if (serverId) {
+      // Use existing server credentials
+      const servers = readServers();
+      const s = servers.find(x => x.id === serverId);
+      if (!s) return res.status(404).json({ error: 'Server not found' });
+      connectOpts = {
+        host: s.host,
+        port: s.port || 22,
+        username: s.username,
+        readyTimeout: 10000,
+      };
+      if (s.privateKey) {
+        connectOpts.privateKey = decrypt(s.privateKey);
+      } else if (s.password) {
+        connectOpts.password = decrypt(s.password);
+      }
+    } else {
+      // Use provided credentials
+      if (!host || !username) return res.status(400).json({ error: 'host, username required' });
+      connectOpts = { host, port: port || 22, username, readyTimeout: 10000 };
+      if (password) connectOpts.password = password;
     }
-  } else {
-    // Use provided credentials
-    if (!host || !username) return res.status(400).json({ error: 'host, username required' });
-    connectOpts = { host, port: port || 22, username, readyTimeout: 10000 };
-    if (password) connectOpts.password = password;
-  }
 
-  const conn = new Client();
-  let replied = false;
+    const conn = new Client();
+    let replied = false;
 
-  const timeout = setTimeout(() => {
-    if (!replied) { replied = true; conn.end(); res.json({ ok: false, error: 'Connection timed out (10s)' }); }
-  }, 12000);
+    const timeout = setTimeout(() => {
+      if (!replied) { replied = true; conn.end(); res.json({ ok: false, error: 'Connection timed out (10s)' }); }
+    }, 12000);
 
-  conn.on('ready', () => {
-    conn.exec('echo ok', (err, stream) => {
+    conn.on('ready', () => {
+      conn.exec('echo ok', (err, stream) => {
+        clearTimeout(timeout);
+        conn.end();
+        if (replied) return;
+        replied = true;
+        if (err) return res.json({ ok: false, error: err.message });
+        res.json({ ok: true, message: `SSH connection to ${connectOpts.host}:${connectOpts.port} successful` });
+      });
+    });
+
+    conn.on('error', err => {
       clearTimeout(timeout);
-      conn.end();
       if (replied) return;
       replied = true;
-      if (err) return res.json({ ok: false, error: err.message });
-      res.json({ ok: true, message: `SSH connection to ${connectOpts.host}:${connectOpts.port} successful` });
+      res.json({ ok: false, error: err.message });
     });
-  });
 
-  conn.on('error', err => {
-    clearTimeout(timeout);
-    if (replied) return;
-    replied = true;
-    res.json({ ok: false, error: err.message });
-  });
-
-  conn.connect(connectOpts);
+    conn.connect(connectOpts);
+  } catch (err) {
+    console.error('[TEST CONN ERROR]', err.message);
+    res.status(500).json({ ok: false, error: `Server error: ${err.message}` });
+  }
 });
 
 module.exports = router;

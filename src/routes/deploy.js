@@ -13,9 +13,20 @@ const DEPLOYMENTS_FILE = path.join(__dirname, '../../data/deployments.json');
 const HISTORY_FILE = path.join(__dirname, '../../data/deploy_history.json');
 const HISTORY_MAX = 200; // Keep at most 200 records
 
+// Sanitize filename for cross-platform compatibility (Windows has stricter rules)
+function sanitizeFilename(name) {
+  // Strip any path prefix (some Windows clients send full path)
+  name = name.replace(/^.*[\\\/]/, '');
+  // Remove characters invalid on Windows: < > : " | ? *
+  name = name.replace(/[<>:"|?*]/g, '_');
+  // Replace any control characters
+  name = name.replace(/[\x00-\x1f]/g, '');
+  return name || 'upload';
+}
+
 const storage = multer.diskStorage({
   destination: UPLOAD_DIR,
-  filename: (req, file, cb) => cb(null, `${Date.now()}_${file.originalname}`)
+  filename: (req, file, cb) => cb(null, `${Date.now()}_${sanitizeFilename(file.originalname)}`)
 });
 const upload = multer({ storage, limits: { fileSize: 500 * 1024 * 1024 } }); // 500MB max
 
@@ -46,7 +57,18 @@ function saveHistory(record) {
 }
 
 // POST /api/deploy — start a deployment
-router.post('/', upload.single('file'), async (req, res) => {
+router.post('/', (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      const msg = err.code === 'LIMIT_FILE_SIZE'
+        ? 'File too large (max 500MB)'
+        : `Upload failed: ${err.message}`;
+      console.error('[UPLOAD ERROR]', err.message);
+      return res.status(400).json({ error: msg });
+    }
+    next();
+  });
+}, async (req, res) => {
   const { deploymentId } = req.body;
   if (!deploymentId) return res.status(400).json({ error: 'deploymentId is required' });
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });

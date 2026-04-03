@@ -7,9 +7,18 @@
 const $ = id => document.getElementById(id);
 const show = el => el.classList.remove('hidden');
 const hide = el => el.classList.add('hidden');
-const api = (url, opts = {}) =>
-  fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts })
-    .then(r => r.json());
+const api = async (url, opts = {}) => {
+  const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  const text = await r.text();
+  try {
+    const data = JSON.parse(text);
+    if (!r.ok && data.error) throw new Error(data.error);
+    return data;
+  } catch (e) {
+    if (e.message && !e.message.includes('JSON')) throw e;
+    throw new Error(`Server error (${r.status}): ${text.slice(0, 200)}`);
+  }
+};
 
 function fmtBytes(b) {
   if (b < 1024) return b + ' B';
@@ -803,7 +812,9 @@ $('deploy-btn').addEventListener('click', async () => {
   let taskId;
   try {
     const res = await fetch('/api/deploy', { method: 'POST', body: fd });
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error(text.slice(0, 200) || 'Deploy failed'); }
     if (!res.ok) throw new Error(data.error || 'Deploy failed');
     taskId = data.taskId;
     _currentTaskId = taskId;
